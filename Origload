@@ -5,27 +5,99 @@ local RunService = game:GetService("RunService")
 local plr = Players.LocalPlayer
 local userId = plr.UserId
 
--- 🛑 Detect Delta Exploit and Kick User
-task.spawn(function()
-	local detected = false
+-- Delta Detection
+local function isDelta()
+    local exec = (identifyexecutor and identifyexecutor()) or (getexecutorname and getexecutorname()) or "Unknown"
+    return tostring(exec):lower():find("delta") ~= nil
+end
 
-	if getgenv and getgenv().Delta or _G.Delta or (identifyexecutor and identifyexecutor():lower():find("delta")) then
-		detected = true
-	end
+-- Show Delta Warning GUI and schedule auto-kick
+local function showDeltaWarning()
+    local gui = Instance.new("ScreenGui", plr:WaitForChild("PlayerGui"))
+    gui.Name = "Delta_Warning"
+    gui.ResetOnSpawn = false
 
-	if detected then
-		plr:Kick("❗ Delta exploit detected. You have been kick for safety, Use Krnl!.")
-	end
-end)
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 420, 0, 200)
+    frame.Position = UDim2.new(0.5, -210, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    frame.BorderSizePixel = 0
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
--- === Main Loading GUI ===
+    local message = Instance.new("TextLabel", frame)
+    message.Size = UDim2.new(1, -20, 1, -60)
+    message.Position = UDim2.new(0, 10, 0, 10)
+    message.BackgroundTransparency = 1
+    message.TextWrapped = true
+    message.TextYAlignment = Enum.TextYAlignment.Top
+    message.TextXAlignment = Enum.TextXAlignment.Left
+    message.TextColor3 = Color3.new(1, 1, 1)
+    message.Font = Enum.Font.Gotham
+    message.TextSize = 13
+    message.Text = [[❗WARNING: DELTA EXECUTOR DETECTED❗
+We're currently experiencing issues with Delta.
+Please switch to a different executor like KRNL (krnl.cat).
+
+You will be automatically kicked in 25 seconds if Delta is still detected.]]
+
+    local countdownLabel = Instance.new("TextLabel", frame)
+    countdownLabel.Size = UDim2.new(1, 0, 0, 30)
+    countdownLabel.Position = UDim2.new(0, 0, 1, -30)
+    countdownLabel.BackgroundTransparency = 1
+    countdownLabel.TextColor3 = Color3.fromRGB(255, 50, 50)
+    countdownLabel.Text = "Kicking in 25 seconds..."
+    countdownLabel.Font = Enum.Font.GothamBold
+    countdownLabel.TextSize = 14
+    countdownLabel.TextScaled = false
+
+    -- Close Button
+    local closeBtn = Instance.new("TextButton", frame)
+    closeBtn.Size = UDim2.new(0, 24, 0, 24)
+    closeBtn.Position = UDim2.new(1, -30, 0, 6)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    closeBtn.TextColor3 = Color3.new(1, 1, 1)
+    closeBtn.Text = "X"
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 14
+    closeBtn.AutoButtonColor = false
+    Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 6)
+
+    closeBtn.MouseEnter:Connect(function()
+        closeBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 0)
+    end)
+
+    closeBtn.MouseLeave:Connect(function()
+        closeBtn.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    end)
+
+    closeBtn.MouseButton1Click:Connect(function()
+        gui:Destroy()
+    end)
+
+    -- Countdown and kick
+    task.spawn(function()
+        for i = 25, 1, -1 do
+            countdownLabel.Text = "Kicking in " .. i .. " seconds..."
+            task.wait(1)
+        end
+        plr:Kick("Delta Executor Detected. Please use a different executor like KRNL.")
+    end)
+end
+
+-- ▼ Only show warning and kick if Delta is detected ▼
+if isDelta() then
+    showDeltaWarning()
+    return
+end
+
+-- ▼ Otherwise show Loading GUI ▼
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "RandomizerGUI"
 ScreenGui.Parent = game.CoreGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.IgnoreGuiInset = true
 
--- === Frame UI ===
 local Frame = Instance.new("Frame")
 Frame.Parent = ScreenGui
 Frame.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -34,30 +106,6 @@ Frame.Size = UDim2.new(0, 400, 0, 180)
 Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 Frame.BorderSizePixel = 0
 
--- ❗ TEXT WARNING AT THE BOTTOM OF THE FRAME ❗
-local WarningText = Instance.new("TextLabel")
-WarningText.Parent = Frame
-WarningText.AnchorPoint = Vector2.new(0.5, 1)
-WarningText.Position = UDim2.new(0.5, 0, 1, 0) -- Bottom of the frame
-WarningText.Size = UDim2.new(1, 0, 0, 25)
-WarningText.BackgroundTransparency = 1
-WarningText.TextColor3 = Color3.fromRGB(255, 0, 0)
-WarningText.Font = Enum.Font.GothamBlack
-WarningText.TextScaled = true
-WarningText.Text = "❗DON'T USE DELTA IT'S A VIRUS IF YOU'RE USING ONE❗"
-WarningText.TextTransparency = 0
-
--- Fade out after 3 seconds
-task.delay(3, function()
-	local fadeTween = TweenService:Create(WarningText, TweenInfo.new(1), {
-		TextTransparency = 1
-	})
-	fadeTween:Play()
-	fadeTween.Completed:Wait()
-	WarningText:Destroy()
-end)
-
--- === Avatar and Labels ===
 local AvatarImage = Instance.new("ImageLabel")
 AvatarImage.Parent = Frame
 AvatarImage.Position = UDim2.new(0, 10, 0, 10)
@@ -110,37 +158,39 @@ Subtitle.Text = "Loading by ProjectB"
 Subtitle.Font = Enum.Font.Gotham
 Subtitle.TextScaled = true
 
--- 🌈 Subtitle RGB color cycle
+-- Rainbow Subtitle
 task.spawn(function()
-	while true do
-		for hue = 0, 1, 0.01 do
-			local color = Color3.fromHSV(hue, 1, 1)
-			Subtitle.TextColor3 = color
-			task.wait(0.05)
-		end
-	end
+    while true do
+        for hue = 0, 1, 0.01 do
+            local color = Color3.fromHSV(hue, 1, 1)
+            Subtitle.TextColor3 = color
+            task.wait(0.05)
+        end
+    end
 end)
 
--- 📊 Progress animation
+-- Animate loading bar and percent
 local loadTime = 5
+
 TweenService:Create(ProgressBar, TweenInfo.new(loadTime, Enum.EasingStyle.Linear), {
-	Size = UDim2.new(1, 0, 1, 0)
+    Size = UDim2.new(1, 0, 1, 0)
 }):Play()
 
 task.spawn(function()
-	local startTime = tick()
-	local connection
+    local startTime = tick()
+    local connection
 
-	connection = RunService.RenderStepped:Connect(function()
-		local elapsed = tick() - startTime
-		local percent = math.clamp((elapsed / loadTime) * 100, 0, 100)
-		PercentText.Text = ("Loading: %d%%"):format(math.floor(percent + 0.5))
+    connection = RunService.RenderStepped:Connect(function()
+        local elapsed = tick() - startTime
+        local percent = math.clamp((elapsed / loadTime) * 100, 0, 100)
+        PercentText.Text = ("Loading: %d%%"):format(math.floor(percent + 0.5))
 
-		if elapsed >= loadTime then
-			connection:Disconnect()
-			ScreenGui:Destroy()
+        if elapsed >= loadTime then
+            connection:Disconnect()
+            ScreenGui:Destroy()
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/ProjectBScripts/Origi/refs/heads/main/Orig"))()
-		end
-	end)
+ loadstring(game:HttpGet("https://raw.githubusercontent.com/ProjectBScripts/Origi/refs/heads/main/Orig"))()
+
+        end
+    end)
 end)
